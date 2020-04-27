@@ -90,3 +90,31 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	// 写入文件信息
 	w.Write(data)
 }
+
+// DownloadFileHandler 获取文件元信息
+func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()                      //解析form
+	fileHas1 := r.Form.Get("filehash") //获取文件哈希值
+	// TODO:加载已存储到云端本地的文件内容，并返回客户端
+	fileMeta := meta.GetFileMeta(fileHas1)
+	//打开已上传的文件
+	file, err := os.Open(fileMeta.Location)
+	if err != nil {
+		fmt.Println("文件找不到")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+	//将文件类容全部加载到内存
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println("文件load错误")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// 加载http响应头，让浏览器能进行识别
+	w.Header().Set("Content-Type", "application/octect-stream")
+	w.Header().Add("Content-Disposition", "attachment; filename=\""+fileMeta.FileName+"\"")
+	//将数据返回到客户端
+	w.Write(data)
+}
