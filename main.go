@@ -10,6 +10,7 @@ func main() {
 	//文件访问路由
 	http.HandleFunc("/file/upload", handler.UploadHandler)
 	http.HandleFunc("/file/upload/suc", handler.UploadSucceceHandler)
+	http.HandleFunc("/file/meta", handler.GetFileMetaHandler)
 	//监听端口
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
