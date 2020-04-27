@@ -138,43 +138,43 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 // FileMetaUpdateHandler 更新文件元信息
 func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()                         //解析form
-	fileType := r.Form.Get("OpenFile")    // 获取客户端的文件类型
+	opType := r.Form.Get("op")            // 获取客户端的文件类型
 	fileSha1 := r.Form.Get("filehash")    //获取客户端文件的唯一标志哈希值
 	newFileName := r.Form.Get("filename") //获取客户端文件的名字
 
-	if fileType != "0" {
+	if opType != "0" {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	if r.Method == "POST" {
+
+	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	currentFileMeta := meta.GetFileMeta(fileSha1)
-	currentFileMeta.FileName = newFileName
-	meta.UploadFileMeta(currentFileMeta)
 
-	data, err := json.Marshal(currentFileMeta)
+	curFileMeta := meta.GetFileMeta(fileSha1)
+	curFileMeta.FileName = newFileName
+	// meta.UploadFileMeta(curFileMeta)
+
+	data, err := json.Marshal(curFileMeta)
 	if err != nil {
-		fmt.Println("文件元信息序列化失败")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(500)
 		return
 	}
-	//返回客户端状态信息
-	w.WriteHeader(http.StatusOK)
-	//将数据返回到客户端
+
+	w.WriteHeader(200)
 	w.Write(data)
 }
 
-// FileDeleteHandler 删除文件句柄
+// FileDeleteHandler 删除文件
 func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()                      //解析form
-	fileSha1 := r.Form.Get("filehash") //获取请求参数
+	r.ParseForm()
+	fileSha1 := r.Form.Get("filehash")
 
 	fMeta := meta.GetFileMeta(fileSha1)
 	os.Remove(fMeta.Location)
 
-	meta.RemoveFileMeta(fileSha1) //依据哈希删除
+	meta.RemoveFileMeta(fileSha1)
 
 	w.WriteHeader(200)
 }
