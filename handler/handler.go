@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -117,4 +118,63 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Disposition", "attachment; filename=\""+fileMeta.FileName+"\"")
 	//将数据返回到客户端
 	w.Write(data)
+}
+
+// FileQueryHandler 文件查找
+func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm() //解析form
+
+	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
+	fileMetas := meta.GetLastFileMetas(limitCnt)
+	data, err := json.Marshal(fileMetas)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(data)
+}
+
+// FileMetaUpdateHandler 更新文件元信息
+func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()                         //解析form
+	fileType := r.Form.Get("OpenFile")    // 获取客户端的文件类型
+	fileSha1 := r.Form.Get("filehash")    //获取客户端文件的唯一标志哈希值
+	newFileName := r.Form.Get("filename") //获取客户端文件的名字
+
+	if fileType != "0" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	if r.Method == "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	currentFileMeta := meta.GetFileMeta(fileSha1)
+	currentFileMeta.FileName = newFileName
+	meta.UploadFileMeta(currentFileMeta)
+
+	data, err := json.Marshal(currentFileMeta)
+	if err != nil {
+		fmt.Println("文件元信息序列化失败")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	//返回客户端状态信息
+	w.WriteHeader(http.StatusOK)
+	//将数据返回到客户端
+	w.Write(data)
+}
+
+// FileDeleteHandler 删除文件句柄
+func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()                      //解析form
+	fileSha1 := r.Form.Get("filehash") //获取请求参数
+
+	fMeta := meta.GetFileMeta(fileSha1)
+	os.Remove(fMeta.Location)
+
+	meta.RemoveFileMeta(fileSha1) //依据哈希删除
+
+	w.WriteHeader(200)
 }
